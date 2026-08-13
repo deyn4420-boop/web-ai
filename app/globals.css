@@ -21,7 +21,7 @@
   --color-divider: #E5E7EB;
 
   /* Typography */
-  --font-sans: var(--font-poppins);
+  --font-sans: Poppins, Arial, Helvetica, sans-serif;
   --text-h1: 32px;
   --text-h1--line-height: 1.2;
   --text-h2: 24px;

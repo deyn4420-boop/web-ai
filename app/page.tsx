@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { CSSProperties } from "react"
-import { articles, type Article, type BiasBreakdown } from "./data/news"
+import type { Article, BiasBreakdown } from "./data/news"
+import { getArticles } from "./lib/news-repository"
 
 const topics = [
   "World Cup",
@@ -86,7 +87,9 @@ function NewsCard({ article }: { article: Article }) {
   )
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const articles = await getArticles()
+
   return (
     <main className="min-h-screen bg-[#fbfbf8] text-text-primary">
       <header>

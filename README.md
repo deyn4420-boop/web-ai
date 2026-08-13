@@ -1,31 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Skew News
+
+Skew News is a Next.js app backed by Supabase for article data, bias scores,
+summaries, and source breakdowns. If Supabase environment variables are missing,
+the app falls back to the local sample articles in `app/data/news.ts`.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Copy `.env.local.example` to `.env.local`.
+2. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+3. Apply `supabase/migrations/20260813000100_create_news_schema.sql` to your Supabase database.
+4. Insert rows into `public.news_articles` and optional source rows into
+   `public.news_article_sources`.
 
-## Learn More
+The migration enables RLS on public tables, adds least-privilege read grants for
+`anon` and `authenticated`, and adds indexes for the article list, category,
+region, slug, and source lookup paths.
 
-To learn more about Next.js, take a look at the following resources:
+## Data Access
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+News access lives in `app/lib/news-repository.ts`. Pages should call that module
+instead of importing the local seed directly.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
