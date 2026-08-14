@@ -358,14 +358,16 @@ export default async function NewsDetailsPage({ params }: PageProps) {
             ))}
           </div>
 
-          <section className="mt-10 border-t border-[#cfcfcf] pt-7">
-            <h2 className="text-[16px] font-bold">Related Stories</h2>
-            <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
-              {relatedStories.map((story) => (
-                <RelatedStoryItem key={story.slug} story={story} />
-              ))}
-            </div>
-          </section>
+          {relatedStories.length > 0 ? (
+            <section className="mt-10 border-t border-[#cfcfcf] pt-7">
+              <h2 className="text-[16px] font-bold">Related Stories</h2>
+              <div className="mt-5 grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+                {relatedStories.map((story) => (
+                  <RelatedStoryItem key={story.slug} story={story} />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </article>
 
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
