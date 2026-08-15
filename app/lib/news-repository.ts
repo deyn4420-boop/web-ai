@@ -217,9 +217,10 @@ function byPublishedDateDesc(a: Article, b: Article) {
 
 export async function getArticles() {
   const supabase = createSupabaseServerClient()
+  const fallback = [...fallbackArticles].sort(byPublishedDateDesc)
 
   if (!supabase) {
-    return [...fallbackArticles].sort(byPublishedDateDesc)
+    return fallback
   }
 
   const newsResult = await supabase
@@ -243,7 +244,7 @@ export async function getArticles() {
   if (newsResult.error && pipelineResult.error) {
     console.error("Failed to load news articles from Supabase", newsResult.error)
     console.error("Failed to load analyzed pipeline articles from Supabase", pipelineResult.error)
-    return [...fallbackArticles].sort(byPublishedDateDesc)
+    return fallback
   }
 
   const newsArticles = newsResult.error
@@ -253,14 +254,21 @@ export async function getArticles() {
     ? []
     : (pipelineResult.data as PipelineArticleRow[]).map(toPipelineArticle)
 
-  return [...pipelineArticles, ...newsArticles].sort(byPublishedDateDesc)
+  const mergedArticles = [...pipelineArticles, ...newsArticles].sort(byPublishedDateDesc)
+
+  if (mergedArticles.length === 0) {
+    return fallback
+  }
+
+  return mergedArticles
 }
 
 export async function getArticleBySlug(slug: string) {
   const supabase = createSupabaseServerClient()
+  const fallbackArticle = fallbackArticles.find((article) => article.slug === slug)
 
   if (!supabase) {
-    return fallbackArticles.find((article) => article.slug === slug)
+    return fallbackArticle
   }
 
   const pipelineId = getPipelineId(slug)
@@ -277,10 +285,10 @@ export async function getArticleBySlug(slug: string) {
 
     if (error) {
       console.error(`Failed to load analyzed article "${slug}" from Supabase`, error)
-      return undefined
+      return fallbackArticle
     }
 
-    return data ? toPipelineArticle(data as PipelineArticleRow) : undefined
+    return data ? toPipelineArticle(data as PipelineArticleRow) : fallbackArticle
   }
 
   const { data, error } = await supabase
@@ -294,20 +302,21 @@ export async function getArticleBySlug(slug: string) {
 
   if (error) {
     console.error(`Failed to load news article "${slug}" from Supabase`, error)
-    return fallbackArticles.find((article) => article.slug === slug)
+    return fallbackArticle
   }
 
-  return data ? toArticle(data as NewsArticleRow) : undefined
+  return data ? toArticle(data as NewsArticleRow) : fallbackArticle
 }
 
 export async function getRelatedArticles(slug: string, limit = 6) {
   const supabase = createSupabaseServerClient()
+  const fallback = fallbackArticles
+    .filter((article) => article.slug !== slug)
+    .sort(byPublishedDateDesc)
+    .slice(0, limit)
 
   if (!supabase) {
-    return fallbackArticles
-      .filter((article) => article.slug !== slug)
-      .sort(byPublishedDateDesc)
-      .slice(0, limit)
+    return fallback
   }
 
   const pipelineId = getPipelineId(slug)
@@ -325,7 +334,7 @@ export async function getRelatedArticles(slug: string, limit = 6) {
         console.error(`Failed to load embedding for "${slug}"`, currentResult.error)
       }
 
-      return []
+      return fallback
     }
 
     const relatedResult = await supabase.rpc("match_related_articles", {
@@ -336,12 +345,14 @@ export async function getRelatedArticles(slug: string, limit = 6) {
 
     if (relatedResult.error) {
       console.error(`Failed to load semantic related articles for "${slug}"`, relatedResult.error)
-      return []
+      return fallback
     }
 
-    return (relatedResult.data as RelatedPipelineArticleRow[]).map(
+    const relatedArticles = (relatedResult.data as RelatedPipelineArticleRow[]).map(
       toRelatedPipelineArticle,
     )
+
+    return relatedArticles.length > 0 ? relatedArticles : fallback
   }
 
   const { data, error } = await supabase
@@ -356,20 +367,20 @@ export async function getRelatedArticles(slug: string, limit = 6) {
 
   if (error) {
     console.error(`Failed to load related articles for "${slug}"`, error)
-    return fallbackArticles
-      .filter((article) => article.slug !== slug)
-      .sort(byPublishedDateDesc)
-      .slice(0, limit)
+    return fallback
   }
 
-  return (data as NewsArticleRow[]).map(toArticle)
+  const relatedArticles = (data as NewsArticleRow[]).map(toArticle)
+  return relatedArticles.length > 0 ? relatedArticles : fallback
 }
 
 export async function getArticleSources(slug: string) {
   const supabase = createSupabaseServerClient()
+  const fallbackSourceList =
+    slug === "trump-sends-iran-revised-peace-proposal" ? fallbackSources : []
 
   if (!supabase) {
-    return slug === "trump-sends-iran-revised-peace-proposal" ? fallbackSources : []
+    return fallbackSourceList
   }
 
   const pipelineId = getPipelineId(slug)
@@ -386,7 +397,7 @@ export async function getArticleSources(slug: string) {
         console.error(`Failed to load source for "${slug}"`, error)
       }
 
-      return []
+      return fallbackSourceList
     }
 
     const source = firstJoinRow(
@@ -396,7 +407,7 @@ export async function getArticleSources(slug: string) {
       data.article_analyses as Pick<PipelineAnalysisRow, "bias_label"> | Array<Pick<PipelineAnalysisRow, "bias_label">> | null,
     )
 
-    return source
+    const sourceList = source
       ? [
           {
             name: source.name,
@@ -405,6 +416,8 @@ export async function getArticleSources(slug: string) {
           },
         ]
       : []
+
+    return sourceList.length > 0 ? sourceList : fallbackSourceList
   }
 
   const { data, error } = await supabase
@@ -415,8 +428,9 @@ export async function getArticleSources(slug: string) {
 
   if (error) {
     console.error(`Failed to load sources for "${slug}"`, error)
-    return slug === "trump-sends-iran-revised-peace-proposal" ? fallbackSources : []
+    return fallbackSourceList
   }
 
-  return (data as NewsArticleSourceRow[]).map(toArticleSource)
+  const sourceList = (data as NewsArticleSourceRow[]).map(toArticleSource)
+  return sourceList.length > 0 ? sourceList : fallbackSourceList
 }
