@@ -1,4 +1,13 @@
 import { createClient } from "@supabase/supabase-js"
+import dns from "node:dns"
+
+if (typeof process !== "undefined") {
+  try {
+    dns.setDefaultResultOrder("ipv4first")
+  } catch {
+    // Some Node runtimes do not support dns.setDefaultResultOrder().
+  }
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey =
